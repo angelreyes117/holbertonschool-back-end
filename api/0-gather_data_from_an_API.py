@@ -1,40 +1,36 @@
 #!/usr/bin/python3
-""" Gather data from an API  """
+"""Script to gather data from an API and display employee TODO list progress."""
+
+import requests
+import sys
 
 if __name__ == "__main__":
-    from requests import get
-    from sys import argv, exit
+    if len(sys.argv) != 2:
+        print("Usage: python3 0-gather_data_from_an_API.py <employee_id>")
+        sys.exit(1)
 
-    try:
-        id = argv[1]
-        is_int = int(id)
-    except:
-        exit()
+    employee_id = sys.argv[1]
 
-    url_user = "https://jsonplaceholder.typicode.com/users?id=" + id
-    url_todo = "https://jsonplaceholder.typicode.com/todos?userId=" + id
+    # Fetch user data
+    user_url = f"https://jsonplaceholder.typicode.com/users/{employee_id}"
+    user_response = requests.get(user_url)
+    if user_response.status_code != 200:
+        print("Employee not found")
+        sys.exit(1)
+    user_data = user_response.json()
+    employee_name = user_data.get('name')
 
-    r_user = get(url_user)
-    r_todo = get(url_todo)
+    # Fetch todos
+    todos_url = f"https://jsonplaceholder.typicode.com/users/{employee_id}/todos"
+    todos_response = requests.get(todos_url)
+    todos = todos_response.json()
 
-    try:
-        js_user = r_user.json()
-        js_todo = r_todo.json()
+    # Calculate completed tasks
+    completed_tasks = [todo for todo in todos if todo.get('completed')]
+    num_completed = len(completed_tasks)
+    total_tasks = len(todos)
 
-    except ValueError:
-        print("Not a valid JSON")
-
-    if js_user and js_todo:
-        EMPLOYEE_NAME = js_user[0].get('name')
-        TOTAL_NUMBER_OF_TASKS = len(js_todo)
-        NUMBER_OF_DONE_TASKS = sum(item.get("completed")
-                                   for item in js_todo if item)
-
-        print("Employee {} is done with tasks({}/{}):"
-              .format(EMPLOYEE_NAME,
-                      NUMBER_OF_DONE_TASKS,
-                      TOTAL_NUMBER_OF_TASKS))
-        for todo in js_todo:
-            TASK_TITLE = todo.get('title')
-            if todo.get("completed"):
-                print("\t {}".format(TASK_TITLE))
+    # Print the required output
+    print(f"Employee {employee_name} is done with tasks({num_completed}/{total_tasks}):")
+    for task in completed_tasks:
+        print(f"\t {task.get('title')}")
